@@ -1,0 +1,521 @@
+basePath: /
+definitions:
+  entities.People:
+    properties:
+      address:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      passport_number:
+        type: integer
+      passport_series:
+        type: integer
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
+  entities.Task:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      timeEntry:
+        $ref: '#/definitions/entities.TimeEntry'
+      title:
+        type: string
+    type: object
+  entities.TaskTimeSpent:
+    properties:
+      name:
+        type: string
+      patronymic:
+        type: string
+      people_id:
+        type: integer
+      surname:
+        type: string
+      task_id:
+        type: integer
+      task_title:
+        type: string
+      time_spent:
+        type: string
+    type: object
+  entities.TimeEntry:
+    properties:
+      created:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: integer
+      people_id:
+        type: integer
+      start_time:
+        type: string
+    type: object
+  handler.ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API Server for Task Tracking
+  title: TaskSync API
+  version: "1.0"
+paths:
+  /people:
+    get:
+      consumes:
+      - application/json
+      description: Get all people
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.People'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: List People
+      tags:
+      - People
+    post:
+      consumes:
+      - application/json
+      description: Create a new person
+      parameters:
+      - description: Person to create
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/entities.People'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: integer
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Create People
+      tags:
+      - People
+    put:
+      consumes:
+      - application/json
+      description: Update an existing person
+      parameters:
+      - description: Person to update
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/entities.People'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Update People
+      tags:
+      - People
+  /people/{peopleID}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a people by ID
+      parameters:
+      - description: People ID
+        in: path
+        name: peopleID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Delete people
+      tags:
+      - People
+    get:
+      consumes:
+      - application/json
+      description: Get details of a person by ID
+      parameters:
+      - description: People ID
+        in: path
+        name: peopleID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.People'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get Person by ID
+      tags:
+      - People
+  /people/filter:
+    get:
+      consumes:
+      - application/json
+      description: Get people based on filters
+      parameters:
+      - description: Filter
+        in: body
+        name: filter
+        required: true
+        schema:
+          $ref: '#/definitions/entities.People'
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.People'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get People by Filter
+      tags:
+      - People
+  /task:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all tasks
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.Task'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: List Tasks
+      tags:
+      - Task
+    post:
+      consumes:
+      - application/json
+      description: Create a new task
+      parameters:
+      - description: People ID
+        in: query
+        name: people_id
+        required: true
+        type: integer
+      - description: Task to create
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/entities.Task'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task ID
+          schema:
+            type: integer
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Create Task
+      tags:
+      - Task
+    put:
+      consumes:
+      - application/json
+      description: Update an existing task
+      parameters:
+      - description: Task to update
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/entities.Task'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Update Task
+      tags:
+      - Task
+  /task/{taskID}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a task by its ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Delete Task
+      tags:
+      - Task
+    get:
+      consumes:
+      - application/json
+      description: Get a task by its ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get Task by ID
+      tags:
+      - Task
+  /task/update-people:
+    put:
+      consumes:
+      - application/json
+      description: Update people associated with a task
+      parameters:
+      - description: Task ID
+        in: query
+        name: task_id
+        required: true
+        type: integer
+      - description: People ID
+        in: query
+        name: people_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Update People in Task
+      tags:
+      - Task
+  /time/end:
+    post:
+      consumes:
+      - application/json
+      description: End recording time for a task
+      parameters:
+      - description: Task to end time entry for
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/entities.Task'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: End Time Entry
+      tags:
+      - Time
+  /time/spent:
+    get:
+      consumes:
+      - application/json
+      description: Get time spent on tasks by a person within a specific time range
+      parameters:
+      - description: People ID
+        in: query
+        name: people_id
+        required: true
+        type: integer
+      - description: Start time in RFC3339 format
+        in: query
+        name: start_time
+        required: true
+        type: string
+      - description: End time in RFC3339 format
+        in: query
+        name: end_time
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entities.TaskTimeSpent'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get Task Time Spent
+      tags:
+      - Time
+  /time/start:
+    post:
+      consumes:
+      - application/json
+      description: Start recording time for a task
+      parameters:
+      - description: Task to start time entry for
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/entities.Task'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Start Time Entry
+      tags:
+      - Time
+swagger: "2.0"
