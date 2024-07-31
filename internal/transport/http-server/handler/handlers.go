@@ -30,7 +30,7 @@ func (h *Handler) InitRouter() *chi.Mux {
 	r.Use(middleware.CleanPath) // Исправление путей
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:8080"}, // Разрешаем только запросы с этого домена
+		AllowedOrigins: []string{"http://localhost:8080"}, // Разрешаем запросы только с этого домена
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "Content-Length", "Cache-Control",
 			"Connection", "Host", "Origin"},

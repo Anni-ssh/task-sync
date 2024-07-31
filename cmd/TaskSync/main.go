@@ -7,10 +7,13 @@ import (
 	"TaskSync/internal/transport/http-server/handler"
 	"TaskSync/internal/transport/http-server/server"
 	"TaskSync/pkg/logger"
+	migrations "TaskSync/pkg/migration"
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -22,8 +25,6 @@ import (
 // @host localhost:8080
 // @basePath /
 
-const ctxTime = 5
-
 func main() {
 	// Загрузка переменных окружения из файла .env
 	if err := godotenv.Load(); err != nil {
@@ -33,6 +34,19 @@ func main() {
 	// Настройка логгера
 	log := logger.SetupLogger(os.Getenv("ENV"))
 
+	// Конвертация в int
+	attempts, err := strconv.Atoi(os.Getenv("DB_ATTEMPTS"))
+	if err != nil {
+		log.Error("failed conv str to int", slog.Any("error", err))
+		panic(err)
+	}
+
+	delay, err := strconv.Atoi(os.Getenv("DB_DELAY"))
+	if err != nil {
+		log.Error("failed conv str to int", slog.Any("error", err))
+		panic(err)
+	}
+
 	// Настройка подключения к базе данных PostgreSQL
 	db, err := postgres.NewPostgresDB(postgres.Config{
 		Host:     os.Getenv("DB_HOST"),
@@ -41,12 +55,21 @@ func main() {
 		Password: os.Getenv("DB_PASSWORD"),
 		DBName:   os.Getenv("DB_NAME"),
 		SSLMode:  os.Getenv("DB_SSLMODE"),
-	})
+	}, attempts, time.Duration(delay))
 
 	if err != nil {
 		log.Error("failed to init PostgresDB", slog.Any("error", err))
 		panic(err)
 	}
+
+	// Миграции БД
+	err = migrations.RunMigrations(db)
+	if err != nil {
+		log.Error("Failed to create create migrations", slog.Any("error", err))
+		panic(err)
+	}
+
+	log.Info("Migrations applied successfully!")
 
 	// Инициализация хранилища, сервисов и обработчиков
 	repositories := storage.NewStorage(db)
@@ -61,7 +84,7 @@ func main() {
 	log.Info("Starting server...")
 
 	go func() {
-		if err = srv.Run(os.Getenv("SERVER"), handlers.InitRouter()); err != nil {
+		if err = srv.Run(os.Getenv("SERVER_HOST")+":"+os.Getenv("SERVER_PORT"), handlers.InitRouter()); err != nil {
 			log.Error("error starting server", slog.Any("error", err))
 			panic(err)
 		}

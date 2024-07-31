@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+
+	"github.com/lib/pq"
 )
 
 type PeopleManagePostgres struct {
@@ -27,8 +29,13 @@ func (p *PeopleManagePostgres) Create(ctx context.Context, people entities.Peopl
 	var id int
 
 	err := p.db.QueryRowContext(ctx, q, people.PassportSeries, people.PassportNumber, people.Surname, people.Name, people.Patronymic, people.Address).Scan(&id)
-	if err != nil {
-		return 0, fmt.Errorf("database error: %w, operation: %s", err, op)
+
+	if err, ok := err.(*pq.Error); ok {
+		if err.Code == "22023" { // "invalid_parameter_value"
+			return 0, fmt.Errorf("%w, operation: %s", ErrInputData, op)
+		} else {
+			return 0, fmt.Errorf("database error: %w, operation: %s", err, op)
+		}
 	}
 
 	return id, nil
