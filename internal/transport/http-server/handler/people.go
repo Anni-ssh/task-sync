@@ -4,7 +4,6 @@ import (
 	"TaskSync/internal/entities"
 	"TaskSync/pkg/logger"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -14,15 +13,15 @@ import (
 
 // Handler methods for People
 
-// @Summary Create People
-// @Description Create a new people
+// @Summary Create a new people
+// @Description Create a new person record. Passport number should be 6 digits and passport series should be 4 digits.
 // @Tags People
 // @Accept json
 // @Produce json
-// @Param people body entities.People true "People to create"
-// @Success 201 {integer} int
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Param people body entities.People true "Details of the person to create"
+// @Success 201 {integer} int "ID of the created person"
+// @Failure 400 {object} ErrorResponse "Invalid request payload"
+// @Failure 500 {object} ErrorResponse "Internal server error"
 // @Router /people [post]
 func (h *Handler) peopleCreate(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.peopleCreate"
@@ -144,14 +143,10 @@ func (h *Handler) peopleGetByFilter(w http.ResponseWriter, r *http.Request) {
 	limit := parseQueryInt(r.URL.Query().Get("limit"))
 	offset := parseQueryInt(r.URL.Query().Get("offset"))
 
-	fmt.Println(filter)
-	fmt.Println(limit)
-	fmt.Println(offset)
-
 	people, err := h.services.People.GetByFilter(r.Context(), filter, limit, offset)
 	if err != nil {
 		log.Error("Failed to fetch people by filter", logger.Err(err))
-		writeErrorResponse(w, http.StatusInternalServerError, "Failed to fetch people by filter")
+		writeErrorResponse(w, http.StatusUnprocessableEntity, "Failed to fetch people by filter")
 		return
 	}
 

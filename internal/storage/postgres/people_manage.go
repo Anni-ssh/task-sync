@@ -125,12 +125,16 @@ func (p *PeopleManagePostgres) GetByFilter(ctx context.Context, filterPeople ent
 	}
 
 	// Пагинация
+	// Если limit равен 0 - OFFSET не добавляется.
 	if limit > 0 {
 		q.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", argCount, argCount+1))
 		args = append(args, limit, offset)
 	} else {
-		q.WriteString(fmt.Sprintf(" OFFSET $%d", argCount))
-		args = append(args, offset)
+
+		if offset > 0 {
+			q.WriteString(fmt.Sprintf(" OFFSET $%d", argCount))
+			args = append(args, offset)
+		}
 	}
 
 	query := q.String()
@@ -154,6 +158,10 @@ func (p *PeopleManagePostgres) GetByFilter(ctx context.Context, filterPeople ent
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows error: %w, operation: %s", err, op)
+	}
+
+	if len(peopleList) == 0 {
+		return nil, fmt.Errorf("%w: %s", ErrNoRecordsFound, op)
 	}
 
 	return peopleList, nil

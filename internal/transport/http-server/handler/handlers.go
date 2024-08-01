@@ -49,7 +49,7 @@ func (h *Handler) InitRouter() *chi.Mux {
 		r.Get("/", h.peopleList)
 		r.Post("/", h.peopleCreate)
 		r.Get("/{peopleID}", h.peopleGetByID)
-		r.Get("/people/filter", h.peopleGetByFilter)
+		r.Get("/filter", h.peopleGetByFilter)
 		r.Put("/", h.peopleUpdate)
 		r.Delete("/{peopleID}", h.peopleDelete)
 	})

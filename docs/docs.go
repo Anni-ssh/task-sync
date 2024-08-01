@@ -91,7 +91,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a new people",
+                "description": "Create a new person record. Passport number should be 6 digits and passport series should be 4 digits.",
                 "consumes": [
                     "application/json"
                 ],
@@ -101,10 +101,10 @@ const docTemplate = `{
                 "tags": [
                     "People"
                 ],
-                "summary": "Create People",
+                "summary": "Create a new people",
                 "parameters": [
                     {
-                        "description": "People to create",
+                        "description": "Details of the person to create",
                         "name": "people",
                         "in": "body",
                         "required": true,
@@ -115,19 +115,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "ID of the created person",
                         "schema": {
                             "type": "integer"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid request payload",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
