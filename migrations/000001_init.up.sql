@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE TABLE IF NOT EXISTS time_entries (
     id SERIAL PRIMARY KEY,
     people_id INTEGER,
-    task_id INTEGER NOT NULL UNIQUE,
+    task_id INTEGER NOT NULL,
     start_time TIMESTAMP,
     end_time TIMESTAMP,
     duration INTERVAL GENERATED ALWAYS AS (end_time - start_time) STORED,
@@ -63,6 +63,7 @@ BEFORE INSERT OR UPDATE ON people_info
 FOR EACH ROW
 EXECUTE FUNCTION check_passport_length();
 
+
 -- Создание функции для вычисления duration для конкретной записи в time_entries по id
 CREATE OR REPLACE FUNCTION calculate_duration_by_id(entry_id INTEGER)
 RETURNS INTERVAL AS $$
@@ -76,6 +77,11 @@ BEGIN
     FROM time_entries te
     WHERE te.id = entry_id;
 
+    -- Обработка случая, если одно из значений NULL
+    IF start_time IS NULL OR end_time IS NULL THEN
+        RETURN NULL;
+    END IF;
+
     -- Вычисляем duration
     dur := end_time - start_time;
 
@@ -83,8 +89,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Создание хранимой процедуры для генерации рандомных значений.
--- Выполняется только 1 раз из-за уникальности значений task_id.
+-- Создание хранимой процедуры для генерации рандомных значений
 CREATE OR REPLACE PROCEDURE insert_test_data()
 LANGUAGE plpgsql
 AS $$
@@ -92,31 +97,32 @@ BEGIN
     -- Генерация рандомных данных для people_info
     INSERT INTO people_info (passport_series, passport_number, surname, name, patronymic, address)
     SELECT
-        LPAD(FLOOR(RANDOM() * 10000)::TEXT, 4, '0'),  -- Генерация серии паспорта
-        LPAD(FLOOR(RANDOM() * 1000000)::TEXT, 6, '0'),  -- Генерация номера паспорта
+        FLOOR(RANDOM() * 9000 + 1000)::INT,  -- Генерация четырехзначной серии паспорта (от 1000 до 9999)
+   		FLOOR(RANDOM() * 900000 + 100000)::INT,  -- Генерация номера паспорта (от 0 до 999999)
         CONCAT('Surname', FLOOR(RANDOM() * 1000)),  -- Генерация фамилии
         CONCAT('Name', FLOOR(RANDOM() * 1000)),  -- Генерация имени
         CONCAT('Patronymic', FLOOR(RANDOM() * 1000)),  -- Генерация отчества
         CONCAT('Address', FLOOR(RANDOM() * 1000))  -- Генерация адреса
-    FROM generate_series(1, 50);  -- Вставка 50 случайных записей
+    FROM generate_series(1, 50);
 
     -- Генерация рандомных данных для tasks
     INSERT INTO tasks (title, description)
     SELECT
         CONCAT('Task ', FLOOR(RANDOM() * 1000)::TEXT),  -- Генерация названия задачи
         'Description for Task ' || FLOOR(RANDOM() * 1000)::TEXT  -- Генерация описания задачи
-    FROM generate_series(1, 50); 
+    FROM generate_series(1, 50);
 
     -- Генерация данных для time_entries
     INSERT INTO time_entries (people_id, task_id, start_time, end_time)
     SELECT
-        gs1 AS people_id,
-        gs2 AS task_id,
+        p.id AS people_id,
+        t.id AS task_id,
         NOW(),  -- Дата начала работы
         NOW() + INTERVAL '1 day' * FLOOR(RANDOM() * 30)  -- Дата окончания работы
-    FROM generate_series(1, 50) gs1
-    JOIN generate_series(1, 50) gs2 ON gs1 = gs2  -- Соединение для уникальных пар (people_id, task_id) task_id - имеет constraint UNIQUE
-    LIMIT 50;  
+    FROM people_info p
+    CROSS JOIN tasks t
+    ORDER BY RANDOM()
+    LIMIT 50;
 
 END;
 $$;

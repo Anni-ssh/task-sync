@@ -16,7 +16,7 @@ func NewTaskManage(db *sql.DB) *TaskManagePostgres {
 	return &TaskManagePostgres{db: db}
 }
 
-func (t *TaskManagePostgres) Create(ctx context.Context, peopleID int, task entities.Task) (int, error) {
+func (t *TaskManagePostgres) Create(ctx context.Context, task entities.Task) (int, error) {
 
 	const op = "postgres.Task.Create"
 
@@ -42,7 +42,7 @@ func (t *TaskManagePostgres) Create(ctx context.Context, peopleID int, task enti
       VALUES($1, $2, $3, $4)
 	  RETURNING id;`
 
-	result, err := tx.ExecContext(ctx, q, peopleID, newTaskID, task.TimeEntry.StartTime, task.TimeEntry.EndTime)
+	result, err := tx.ExecContext(ctx, q, task.TimeEntry.PeopleID, newTaskID, task.TimeEntry.StartTime, task.TimeEntry.EndTime)
 	if err != nil {
 		tx.Rollback()
 		return 0, fmt.Errorf("database error: %w, operation: %s", err, op)
@@ -75,21 +75,14 @@ func (t *TaskManagePostgres) GetByID(ctx context.Context, taskID int) (entities.
 	WHERE t.id = $1;`
 
 	var task entities.Task
+	row := t.db.QueryRowContext(ctx, q, taskID)
 
-	rows, err := t.db.QueryContext(ctx, q, taskID)
+	err := row.Scan(&task.ID, &task.Title, &task.Description, &task.TimeEntry.PeopleID, &task.TimeEntry.StartTime, &task.TimeEntry.EndTime, &task.TimeEntry.Created)
 	if err != nil {
-		return task, fmt.Errorf("database error: %w, operation: %s", err, op)
-	}
-
-	if rows.Next() {
-		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.TimeEntry.PeopleID, &task.TimeEntry.StartTime, &task.TimeEntry.EndTime, &task.TimeEntry.Created)
-		if err != nil {
-			return task, fmt.Errorf("scan error: %w, operation: %s", err, op)
+		if err == sql.ErrNoRows {
+			return task, fmt.Errorf("no records found, operation: %s", op)
 		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return task, fmt.Errorf("rows error: %w, operation: %s", err, op)
+		return task, fmt.Errorf("scan error: %w, operation: %s", err, op)
 	}
 
 	return task, nil
@@ -149,13 +142,8 @@ func (t *TaskManagePostgres) List(ctx context.Context) ([]entities.Task, error) 
 	return taskList, nil
 }
 
-func (t *TaskManagePostgres) Update(ctx context.Context, task entities.Task) error {
+func (t *TaskManagePostgres) Update(ctx context.Context, taskID int, title string, description string) error {
 	const op = "postgres.task.Update"
-
-	// Проверка наличия корректных значений
-	if task.Title == "" && task.Description == "" {
-		return fmt.Errorf("incorrect values or their absence, operation: %s", op)
-	}
 
 	// Конструктор строки для запроса
 	var q strings.Builder
@@ -165,20 +153,21 @@ func (t *TaskManagePostgres) Update(ctx context.Context, task entities.Task) err
 	argCount := 1
 
 	// Добавление значений в запрос
-	if task.Title != "" {
+	if title != "" {
 		q.WriteString(fmt.Sprintf(" title = $%d,", argCount))
-		args = append(args, task.Title)
+		args = append(args, title)
 		argCount++
 	}
 
-	if task.Description != "" {
-		q.WriteString(fmt.Sprintf(" description = $%d,", argCount))
-		args = append(args, task.Description)
+	if description != "" {
+		q.WriteString(fmt.Sprintf(" description = $%d", argCount))
+		args = append(args, description)
+		argCount++
 	}
 
 	// Доабавление ID обновляемой записи
 	q.WriteString(fmt.Sprintf(" WHERE id = $%d", argCount))
-	args = append(args, task.ID)
+	args = append(args, taskID)
 
 	result, err := t.db.ExecContext(ctx, q.String(), args...)
 	if err != nil {
@@ -204,9 +193,9 @@ func (t *TaskManagePostgres) UpdatePeople(ctx context.Context, peopleID, taskID 
 		return fmt.Errorf("incorrect values or their absence, operation: %s", op)
 	}
 
-	q := `UPDATE tasks 
+	q := `UPDATE time_entries 
 		SET people_id = $1
-		WHERE id = $2`
+		WHERE task_id = $2`
 
 	result, err := t.db.ExecContext(ctx, q, peopleID, taskID)
 	if err != nil {

@@ -17,8 +17,8 @@ func NewTaskService(t storage.TaskManage) *TaskService {
 }
 
 // Create создает новую задачу для пользователя.
-func (t *TaskService) Create(ctx context.Context, peopleID int, task entities.Task) (int, error) {
-	return t.storage.Create(ctx, peopleID, task)
+func (t *TaskService) Create(ctx context.Context, task entities.Task) (int, error) {
+	return t.storage.Create(ctx, task)
 }
 
 // GetByID возвращает данные задачи по её ID.
@@ -32,8 +32,8 @@ func (t *TaskService) List(ctx context.Context) ([]entities.Task, error) {
 }
 
 // Update обновляет данные задачи.
-func (t *TaskService) Update(ctx context.Context, task entities.Task) error {
-	return t.storage.Update(ctx, task)
+func (t *TaskService) Update(ctx context.Context, taskID int, title string, description string) error {
+	return t.storage.Update(ctx, taskID, title, description)
 }
 
 // UpdatePeople обновляет исполнителя задачи.

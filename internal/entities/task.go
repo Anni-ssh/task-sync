@@ -20,10 +20,10 @@ func (t *TimeEntry) Duration() time.Duration {
 
 // Структура для задачи
 type Task struct {
-	ID          int    `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	TimeEntry   TimeEntry
+	ID          int       `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	TimeEntry   TimeEntry `json:"timeEntry"`
 }
 
 // Структура для вывода трудозатрат по пользователю определённый период.

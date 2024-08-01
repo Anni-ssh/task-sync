@@ -14,11 +14,10 @@ import (
 // Handler methods for Task
 
 // @Summary Create Task
-// @Description Create a new task
+// @Description Create a new task. FORMAT TIME - RFC 3339 "2024-08-01T08:00:00Z".
 // @Tags Task
 // @Accept json
 // @Produce json
-// @Param people_id query int true "People ID"
 // @Param task body entities.Task true "Task to create"
 // @Success 200 {integer} int "Task ID"
 // @Failure 400 {object} ErrorResponse
@@ -35,14 +34,7 @@ func (h *Handler) taskCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	peopleID, err := strconv.Atoi(r.URL.Query().Get("people_id"))
-	if err != nil {
-		log.Error("Invalid people ID", logger.Err(err))
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid people ID")
-		return
-	}
-
-	id, err := h.services.Task.Create(r.Context(), peopleID, task)
+	id, err := h.services.Task.Create(r.Context(), task)
 	if err != nil {
 		log.Error("Failed to create task", logger.Err(err))
 		writeErrorResponse(w, http.StatusInternalServerError, "Failed to create task")
@@ -50,7 +42,10 @@ func (h *Handler) taskCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(id)
+	if err := json.NewEncoder(w).Encode(id); err != nil {
+		log.Error("Failed to encode response", logger.Err(err))
+		writeErrorResponse(w, http.StatusInternalServerError, "Failed to encode response")
+	}
 }
 
 // @Summary Get Task by ID
@@ -112,12 +107,18 @@ func (h *Handler) taskList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type taskUpdate struct {
+	TaskID      int    `json:"task_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}
+
 // @Summary Update Task
-// @Description Update an existing task
+// @Description Update an existing task. FORMAT TIME - RFC 3339 "2024-08-01T08:00:00Z".
 // @Tags Task
 // @Accept json
 // @Produce json
-// @Param task body entities.Task true "Task to update"
+// @Param task body taskUpdate true "Task to update"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -126,14 +127,14 @@ func (h *Handler) taskUpdate(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.taskUpdate"
 	log := h.Logs.With(slog.String("operation", op))
 
-	var task entities.Task
+	var task taskUpdate
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		log.Error("Failed to decode request body", logger.Err(err))
 		writeErrorResponse(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
-	if err := h.services.Task.Update(r.Context(), task); err != nil {
+	if err := h.services.Task.Update(r.Context(), task.TaskID, task.Title, task.Description); err != nil {
 		log.Error("Failed to update task", logger.Err(err))
 		writeErrorResponse(w, http.StatusInternalServerError, "Failed to update task")
 		return
@@ -146,13 +147,17 @@ func (h *Handler) taskUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type PeopleAndTask struct {
+	PeopleID int
+	TaskID   int
+}
+
 // @Summary Update People in Task
 // @Description Update people associated with a task
 // @Tags Task
 // @Accept json
 // @Produce json
-// @Param task_id query int true "Task ID"
-// @Param people_id query int true "People ID"
+// @Param task body PeopleAndTask true "People and task to update"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -161,21 +166,15 @@ func (h *Handler) taskUpdatePeople(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.taskUpdatePeople"
 	log := h.Logs.With(slog.String("operation", op))
 
-	taskID, err := strconv.Atoi(r.URL.Query().Get("task_id"))
-	if err != nil {
-		log.Error("Invalid task ID", logger.Err(err))
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid task ID")
+	var values PeopleAndTask
+
+	if err := json.NewDecoder(r.Body).Decode(&values); err != nil {
+		log.Error("Failed to decode request body", logger.Err(err))
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
-	peopleID, err := strconv.Atoi(r.URL.Query().Get("people_id"))
-	if err != nil {
-		log.Error("Invalid people ID", logger.Err(err))
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid people ID")
-		return
-	}
-
-	if err := h.services.Task.UpdatePeople(r.Context(), peopleID, taskID); err != nil {
+	if err := h.services.Task.UpdatePeople(r.Context(), values.PeopleID, values.TaskID); err != nil {
 		log.Error("Failed to update people in task", logger.Err(err))
 		writeErrorResponse(w, http.StatusInternalServerError, "Failed to update people in task")
 		return

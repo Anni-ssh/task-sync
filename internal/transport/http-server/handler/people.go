@@ -19,8 +19,8 @@ import (
 // @Accept json
 // @Produce json
 // @Param people body entities.People true "Details of the person to create"
-// @Success 201 {integer} int "ID of the created person"
-// @Failure 400 {object} ErrorResponse "Invalid request payload"
+// @Success 201 {integer} int "ID of the created people"
+// @Failure 422 {object} ErrorResponse "Invalid request payload"
 // @Failure 500 {object} ErrorResponse "Internal server error"
 // @Router /people [post]
 func (h *Handler) peopleCreate(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +45,7 @@ func (h *Handler) peopleCreate(w http.ResponseWriter, r *http.Request) {
 		log.Error("Failed to encode response", logger.Err(err))
 		writeErrorResponse(w, http.StatusInternalServerError, "Failed to encode response")
 	}
+
 }
 
 // @Summary List People
@@ -70,6 +71,8 @@ func (h *Handler) peopleList(w http.ResponseWriter, r *http.Request) {
 		log.Error("Failed to encode response", logger.Err(err))
 		writeErrorResponse(w, http.StatusInternalServerError, "Failed to encode response")
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // @Summary Get People by ID
@@ -79,8 +82,8 @@ func (h *Handler) peopleList(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param peopleID path int true "People ID"
 // @Success 200 {object} entities.People
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse "Failed to fetch person by ID"
+// @Failure 500 {object} ErrorResponse "Internal Server Error"
 // @Router /people/{peopleID} [get]
 func (h *Handler) peopleGetByID(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.peopleGetByID"
@@ -97,7 +100,7 @@ func (h *Handler) peopleGetByID(w http.ResponseWriter, r *http.Request) {
 	people, err := h.services.People.GetByID(r.Context(), id)
 	if err != nil {
 		log.Error("Failed to fetch person by ID", logger.Err(err))
-		writeErrorResponse(w, http.StatusUnprocessableEntity, "Failed to fetch person by ID")
+		writeErrorResponse(w, http.StatusBadRequest, "Failed to fetch person by ID")
 		return
 	}
 
@@ -122,9 +125,8 @@ func (h *Handler) peopleGetByID(w http.ResponseWriter, r *http.Request) {
 // @Param limit query int false "Limit"
 // @Param offset query int false "Offset"
 // @Success 200 {array} entities.People
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 422 {object} ErrorResponse "Failed to fetch people by filter"
+// @Failure 500 {object} ErrorResponse "Internal Server Error"
 // @Router /people/filter [get]
 func (h *Handler) peopleGetByFilter(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.peopleGetByFilter"
@@ -134,10 +136,10 @@ func (h *Handler) peopleGetByFilter(w http.ResponseWriter, r *http.Request) {
 		ID:             parseQueryInt(r.URL.Query().Get("id")),
 		PassportSeries: parseQueryInt(r.URL.Query().Get("passport_series")),
 		PassportNumber: parseQueryInt(r.URL.Query().Get("passport_number")),
-		Surname:        r.URL.Query().Get("surname"),
-		Name:           r.URL.Query().Get("name"),
-		Patronymic:     r.URL.Query().Get("patronymic"),
-		Address:        r.URL.Query().Get("address"),
+		Surname:        chi.URLParam(r, "surname"),
+		Name:           chi.URLParam(r, "name"),
+		Patronymic:     chi.URLParam(r, "patronymic"),
+		Address:        chi.URLParam(r, "address"),
 	}
 
 	limit := parseQueryInt(r.URL.Query().Get("limit"))
@@ -163,8 +165,8 @@ func (h *Handler) peopleGetByFilter(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param person body entities.People true "Person to update"
 // @Success 200 {string} string "OK"
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 422 {object} ErrorResponse "Invalid request payload"
+// @Failure 500 {object} ErrorResponse "Failed to update person"
 // @Router /people [put]
 func (h *Handler) peopleUpdate(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.peopleUpdate"
@@ -193,8 +195,8 @@ func (h *Handler) peopleUpdate(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param peopleID path int true "People ID"
 // @Success 200 {string} string "OK"
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 422 {object} ErrorResponse "Invalid people ID
+// @Failure 500 {object} ErrorResponse  "Failed to delete person"
 // @Router /people/{peopleID} [delete]
 func (h *Handler) peopleDelete(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.peopleDelete"

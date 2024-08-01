@@ -63,6 +63,29 @@ definitions:
       message:
         type: string
     type: object
+  handler.PeopleAndTask:
+    properties:
+      peopleID:
+        type: integer
+      taskID:
+        type: integer
+    type: object
+  handler.taskUpdate:
+    properties:
+      description:
+        type: string
+      task_id:
+        type: integer
+      title:
+        type: string
+    type: object
+  handler.timeTask:
+    properties:
+      start_time:
+        type: string
+      task_id:
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -107,10 +130,10 @@ paths:
       - application/json
       responses:
         "201":
-          description: ID of the created person
+          description: ID of the created people
           schema:
             type: integer
-        "400":
+        "422":
           description: Invalid request payload
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
@@ -139,12 +162,12 @@ paths:
           description: OK
           schema:
             type: string
-        "400":
-          description: Bad Request
+        "422":
+          description: Invalid request payload
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Failed to update person
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
       summary: Update People
@@ -168,12 +191,12 @@ paths:
           description: OK
           schema:
             type: string
-        "400":
-          description: Bad Request
+        "422":
+          description: Invalid people ID
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Failed to delete person
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
       summary: Delete people
@@ -197,7 +220,7 @@ paths:
           schema:
             $ref: '#/definitions/entities.People'
         "400":
-          description: Bad Request
+          description: Failed to fetch person by ID
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "500":
@@ -258,12 +281,8 @@ paths:
             items:
               $ref: '#/definitions/entities.People'
             type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/handler.ErrorResponse'
-        "404":
-          description: Not Found
+        "422":
+          description: Failed to fetch people by filter
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "500":
@@ -297,13 +316,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new task
+      description: Create a new task. FORMAT TIME - RFC 3339 "2024-08-01T08:00:00Z".
       parameters:
-      - description: People ID
-        in: query
-        name: people_id
-        required: true
-        type: integer
       - description: Task to create
         in: body
         name: task
@@ -331,14 +345,14 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update an existing task
+      description: Update an existing task. FORMAT TIME - RFC 3339 "2024-08-01T08:00:00Z".
       parameters:
       - description: Task to update
         in: body
         name: task
         required: true
         schema:
-          $ref: '#/definitions/entities.Task'
+          $ref: '#/definitions/handler.taskUpdate'
       produces:
       - application/json
       responses:
@@ -420,16 +434,12 @@ paths:
       - application/json
       description: Update people associated with a task
       parameters:
-      - description: Task ID
-        in: query
-        name: task_id
+      - description: People and task to update
+        in: body
+        name: task
         required: true
-        type: integer
-      - description: People ID
-        in: query
-        name: people_id
-        required: true
-        type: integer
+        schema:
+          $ref: '#/definitions/handler.PeopleAndTask'
       produces:
       - application/json
       responses:
@@ -526,7 +536,7 @@ paths:
         name: task
         required: true
         schema:
-          $ref: '#/definitions/entities.Task'
+          $ref: '#/definitions/handler.timeTask'
       produces:
       - application/json
       responses:

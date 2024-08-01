@@ -76,14 +76,14 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "422": {
+                        "description": "Invalid request payload",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Failed to update person",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -115,12 +115,12 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "ID of the created person",
+                        "description": "ID of the created people",
                         "schema": {
                             "type": "integer"
                         }
                     },
-                    "400": {
+                    "422": {
                         "description": "Invalid request payload",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
@@ -214,14 +214,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/handler.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
+                    "422": {
+                        "description": "Failed to fetch people by filter",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -265,7 +259,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Failed to fetch person by ID",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -306,14 +300,14 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "422": {
+                        "description": "Invalid people ID",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Failed to delete person",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
@@ -353,7 +347,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Update an existing task",
+                "description": "Update an existing task. FORMAT TIME - RFC 3339 \"2024-08-01T08:00:00Z\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -371,7 +365,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/entities.Task"
+                            "$ref": "#/definitions/handler.taskUpdate"
                         }
                     }
                 ],
@@ -397,7 +391,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a new task",
+                "description": "Create a new task. FORMAT TIME - RFC 3339 \"2024-08-01T08:00:00Z\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -409,13 +403,6 @@ const docTemplate = `{
                 ],
                 "summary": "Create Task",
                 "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "People ID",
-                        "name": "people_id",
-                        "in": "query",
-                        "required": true
-                    },
                     {
                         "description": "Task to create",
                         "name": "task",
@@ -463,18 +450,13 @@ const docTemplate = `{
                 "summary": "Update People in Task",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Task ID",
-                        "name": "task_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "People ID",
-                        "name": "people_id",
-                        "in": "query",
-                        "required": true
+                        "description": "People and task to update",
+                        "name": "task",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.PeopleAndTask"
+                        }
                     }
                 ],
                 "responses": {
@@ -706,7 +688,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/entities.Task"
+                            "$ref": "#/definitions/handler.timeTask"
                         }
                     }
                 ],
@@ -828,6 +810,42 @@ const docTemplate = `{
             "properties": {
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.PeopleAndTask": {
+            "type": "object",
+            "properties": {
+                "peopleID": {
+                    "type": "integer"
+                },
+                "taskID": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handler.taskUpdate": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.timeTask": {
+            "type": "object",
+            "properties": {
+                "start_time": {
+                    "type": "string"
+                },
+                "task_id": {
+                    "type": "integer"
                 }
             }
         }

@@ -16,17 +16,16 @@ func NewTimeManage(db *sql.DB) *TimeManagePostgres {
 	return &TimeManagePostgres{db: db}
 }
 
-func (t *TimeManagePostgres) StartTimeEntry(ctx context.Context, task entities.Task) error {
-
+func (t *TimeManagePostgres) StartTimeEntry(ctx context.Context, taskID int, timeEntries time.Time) error {
 	const op = "postgres.Time.StartTimeEntry"
 
 	q := `UPDATE time_entries 
 		SET start_time = $1
 		WHERE task_id = $2;`
 
-	result, err := t.db.ExecContext(ctx, q, task.TimeEntry.StartTime, task.ID)
+	result, err := t.db.ExecContext(ctx, q, timeEntries, taskID)
 	if err != nil {
-		return fmt.Errorf("failed to update end time for task ID %d: %w, operation: %s", task.ID, err, op)
+		return fmt.Errorf("failed to update end time for task ID %d: %w, operation: %s", taskID, err, op)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -34,7 +33,7 @@ func (t *TimeManagePostgres) StartTimeEntry(ctx context.Context, task entities.T
 		return fmt.Errorf("error retrieving affected rows: %w, operation: %s", err, op)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("no rows updated for task ID %d, operation: %s", task.ID, op)
+		return fmt.Errorf("no rows updated for task ID %d, operation: %s", taskID, op)
 	}
 
 	return nil

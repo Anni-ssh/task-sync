@@ -49,25 +49,16 @@ func (p *PeopleManagePostgres) GetByID(ctx context.Context, peopleID int) (entit
 
 	var people entities.People
 
-	rows, err := p.db.QueryContext(ctx, q, peopleID)
-	if err != nil {
-		return people, fmt.Errorf("database error: %w, operation: %s", err, op)
-	}
+	row := p.db.QueryRowContext(ctx, q, peopleID)
 
-	if !rows.Next() {
-		if err := rows.Err(); err != nil {
-			return people, fmt.Errorf("rows error: %w, operation: %s", err, op)
+	err := row.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address)
+	if err != nil {
+		if err == sql.ErrNoRows {
+
+			return people, fmt.Errorf("no records found, operation: %s", op)
 		}
-		return people, fmt.Errorf("no records found, operation: %s", op)
-	}
 
-	err = rows.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address)
-	if err != nil {
 		return people, fmt.Errorf("scan error: %w, operation: %s", err, op)
-	}
-
-	if err := rows.Err(); err != nil {
-		return people, fmt.Errorf("rows error: %w, operation: %s", err, op)
 	}
 
 	return people, nil

@@ -12,12 +12,17 @@ import (
 
 // Handler methods for Time
 
+type timeTask struct {
+	TaskID    int       `json:"task_id"`
+	TimeStart time.Time `json:"start_time"`
+}
+
 // @Summary Start Time Entry
 // @Description Start recording time for a task
 // @Tags Time
 // @Accept json
 // @Produce json
-// @Param task body entities.Task true "Task to start time entry for"
+// @Param task body timeTask true "Task to start time entry for"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -26,14 +31,14 @@ func (h *Handler) timeStartTimeEntry(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.timeStartTimeEntry"
 	log := h.Logs.With(slog.String("operation", op))
 
-	var task entities.Task
+	var task timeTask
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		log.Error("Failed to decode request body", logger.Err(err))
 		writeErrorResponse(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
-	if err := h.services.Time.StartTimeEntry(r.Context(), task); err != nil {
+	if err := h.services.Time.StartTimeEntry(r.Context(), task.TaskID, task.TimeStart); err != nil {
 		log.Error("Failed to start time entry", logger.Err(err))
 		writeErrorResponse(w, http.StatusInternalServerError, "Failed to start time entry")
 		return
@@ -47,7 +52,7 @@ func (h *Handler) timeStartTimeEntry(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary End Time Entry
-// @Description End recording time for a task
+// @Description End recording time for a task. FORMAT TIME - RFC 3339 "2024-08-01T08:00:00Z".
 // @Tags Time
 // @Accept json
 // @Produce json

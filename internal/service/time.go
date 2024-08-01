@@ -18,8 +18,8 @@ func NewTimeService(t storage.TimeManage) *TimeService {
 }
 
 // StartTimeEntry начинает запись времени для задачи.
-func (t *TimeService) StartTimeEntry(ctx context.Context, task entities.Task) error {
-	return t.storage.StartTimeEntry(ctx, task)
+func (t *TimeService) StartTimeEntry(ctx context.Context, taskID int, timeEntries time.Time) error {
+	return t.storage.StartTimeEntry(ctx, taskID, timeEntries)
 }
 
 // EndTimeEntry завершает запись времени для задачи.
