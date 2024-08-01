@@ -39,7 +39,7 @@ func (t *TimeManagePostgres) StartTimeEntry(ctx context.Context, taskID int, tim
 	return nil
 
 }
-func (t *TimeManagePostgres) EndTimeEntry(ctx context.Context, task entities.Task) error {
+func (t *TimeManagePostgres) EndTimeEntry(ctx context.Context, taskID int, endTime time.Time) error {
 
 	const op = "postgres.Time.EndTimeEntry"
 
@@ -47,9 +47,9 @@ func (t *TimeManagePostgres) EndTimeEntry(ctx context.Context, task entities.Tas
 		SET end_time = $1
 		WHERE task_id = $2;`
 
-	result, err := t.db.ExecContext(ctx, q, task.TimeEntry.EndTime, task.ID)
+	result, err := t.db.ExecContext(ctx, q, endTime, taskID)
 	if err != nil {
-		return fmt.Errorf("failed to update end time for task ID %d: %w, operation: %s", task.ID, err, op)
+		return fmt.Errorf("failed to update end time for task ID %d: %w, operation: %s", taskID, err, op)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -57,14 +57,14 @@ func (t *TimeManagePostgres) EndTimeEntry(ctx context.Context, task entities.Tas
 		return fmt.Errorf("error retrieving affected rows: %w, operation: %s", err, op)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("no rows updated for task ID %d, operation: %s", task.ID, op)
+		return fmt.Errorf("no rows updated for task ID %d, operation: %s", taskID, op)
 	}
 
 	return nil
 
 }
 
-// GetTaskTimeSpent возвращает трудозатраты по пользователю за заданный период.
+// GetTaskTimeSpent возвращает трудозатраты по пользователю за определённый период.
 func (t *TimeManagePostgres) GetTaskTimeSpent(ctx context.Context, peopleID int, startTime, endTime time.Time) ([]entities.TaskTimeSpent, error) {
 	const q = `
 		SELECT

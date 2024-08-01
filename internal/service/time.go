@@ -23,8 +23,8 @@ func (t *TimeService) StartTimeEntry(ctx context.Context, taskID int, timeEntrie
 }
 
 // EndTimeEntry завершает запись времени для задачи.
-func (t *TimeService) EndTimeEntry(ctx context.Context, task entities.Task) error {
-	return t.storage.EndTimeEntry(ctx, task)
+func (t *TimeService) EndTimeEntry(ctx context.Context, taskID int, endTime time.Time) error {
+	return t.storage.EndTimeEntry(ctx, taskID, endTime)
 }
 
 // GetTaskTimeSpent возвращает трудозатраты по пользователю за заданный период.

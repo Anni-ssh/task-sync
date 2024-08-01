@@ -1,20 +1,21 @@
 package handler
 
 import (
-	"TaskSync/internal/entities"
 	"TaskSync/pkg/logger"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // Handler methods for Time
 
 type timeTask struct {
-	TaskID    int       `json:"task_id"`
-	TimeStart time.Time `json:"start_time"`
+	TaskID int       `json:"task_id"`
+	Time   time.Time `json:"time"`
 }
 
 // @Summary Start Time Entry
@@ -38,7 +39,7 @@ func (h *Handler) timeStartTimeEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.services.Time.StartTimeEntry(r.Context(), task.TaskID, task.TimeStart); err != nil {
+	if err := h.services.Time.StartTimeEntry(r.Context(), task.TaskID, task.Time); err != nil {
 		log.Error("Failed to start time entry", logger.Err(err))
 		writeErrorResponse(w, http.StatusInternalServerError, "Failed to start time entry")
 		return
@@ -56,7 +57,7 @@ func (h *Handler) timeStartTimeEntry(w http.ResponseWriter, r *http.Request) {
 // @Tags Time
 // @Accept json
 // @Produce json
-// @Param task body entities.Task true "Task to end time entry for"
+// @Param task body timeTask true "Task to end time entry for"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -65,14 +66,14 @@ func (h *Handler) timeEndTimeEntry(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.timeEndTimeEntry"
 	log := h.Logs.With(slog.String("operation", op))
 
-	var task entities.Task
+	var task timeTask
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		log.Error("Failed to decode request body", logger.Err(err))
 		writeErrorResponse(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
-	if err := h.services.Time.EndTimeEntry(r.Context(), task); err != nil {
+	if err := h.services.Time.EndTimeEntry(r.Context(), task.TaskID, task.Time); err != nil {
 		log.Error("Failed to end time entry", logger.Err(err))
 		writeErrorResponse(w, http.StatusInternalServerError, "Failed to end time entry")
 		return
@@ -86,7 +87,7 @@ func (h *Handler) timeEndTimeEntry(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Get Task Time Spent
-// @Description Get time spent on tasks by a person within a specific time range
+// @Description Get time spent on tasks by a person within a specific time range. FORMAT TIME - RFC 3339 "2024-08-01T08:00:00Z".
 // @Tags Time
 // @Accept json
 // @Produce json
@@ -100,10 +101,26 @@ func (h *Handler) timeGetTaskTimeSpent(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.timeGetTaskTimeSpent"
 	log := h.Logs.With(slog.String("operation", op))
 
-	peopleID, _ := strconv.Atoi(r.URL.Query().Get("people_id"))
-	startTime, _ := time.Parse(time.RFC3339, r.URL.Query().Get("start_time"))
-	endTime, _ := time.Parse(time.RFC3339, r.URL.Query().Get("end_time"))
+	peopleID, err := strconv.Atoi(chi.URLParam(r, "people_id"))
+	if err != nil {
+		log.Error("Invalid people ID", logger.Err(err))
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid people ID")
+		return
+	}
 
+	startTime, err := time.Parse(time.RFC3339, chi.URLParam(r, "start_time"))
+	if err != nil {
+		log.Error("Invalid start time", logger.Err(err))
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid start time")
+		return
+	}
+
+	endTime, err := time.Parse(time.RFC3339, chi.URLParam(r, "end_time"))
+	if err != nil {
+		log.Error("Invalid end time", logger.Err(err))
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid end time")
+		return
+	}
 	timeSpent, err := h.services.Time.GetTaskTimeSpent(r.Context(), peopleID, startTime, endTime)
 	if err != nil {
 		log.Error("Failed to get task time spent", logger.Err(err))

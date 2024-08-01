@@ -569,7 +569,7 @@ const docTemplate = `{
         },
         "/time/end": {
             "post": {
-                "description": "End recording time for a task",
+                "description": "End recording time for a task. FORMAT TIME - RFC 3339 \"2024-08-01T08:00:00Z\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -587,7 +587,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/entities.Task"
+                            "$ref": "#/definitions/handler.timeTask"
                         }
                     }
                 ],
@@ -615,7 +615,7 @@ const docTemplate = `{
         },
         "/time/spent": {
             "get": {
-                "description": "Get time spent on tasks by a person within a specific time range",
+                "description": "Get time spent on tasks by a person within a specific time range. FORMAT TIME - RFC 3339 \"2024-08-01T08:00:00Z\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -841,11 +841,11 @@ const docTemplate = `{
         "handler.timeTask": {
             "type": "object",
             "properties": {
-                "start_time": {
-                    "type": "string"
-                },
                 "task_id": {
                     "type": "integer"
+                },
+                "time": {
+                    "type": "string"
                 }
             }
         }

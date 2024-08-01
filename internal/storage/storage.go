@@ -33,7 +33,7 @@ type TaskManage interface {
 // управление временем выполнения
 type TimeManage interface {
 	StartTimeEntry(ctx context.Context, taskID int, timeEntries time.Time) error
-	EndTimeEntry(ctx context.Context, task entities.Task) error
+	EndTimeEntry(ctx context.Context, taskID int, endTime time.Time) error
 	GetTaskTimeSpent(ctx context.Context, peopleID int, startTime, endTime time.Time) ([]entities.TaskTimeSpent, error)
 }
 
