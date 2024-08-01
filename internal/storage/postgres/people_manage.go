@@ -54,11 +54,16 @@ func (p *PeopleManagePostgres) GetByID(ctx context.Context, peopleID int) (entit
 		return people, fmt.Errorf("database error: %w, operation: %s", err, op)
 	}
 
-	if rows.Next() {
-		err := rows.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address)
-		if err != nil {
-			return people, fmt.Errorf("scan error: %w, operation: %s", err, op)
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return people, fmt.Errorf("rows error: %w, operation: %s", err, op)
 		}
+		return people, fmt.Errorf("no records found, operation: %s", op)
+	}
+
+	err = rows.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address)
+	if err != nil {
+		return people, fmt.Errorf("scan error: %w, operation: %s", err, op)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -120,8 +125,13 @@ func (p *PeopleManagePostgres) GetByFilter(ctx context.Context, filterPeople ent
 	}
 
 	// Пагинация
-	q.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", argCount, argCount+1))
-	args = append(args, limit, offset)
+	if limit > 0 {
+		q.WriteString(fmt.Sprintf(" LIMIT $%d OFFSET $%d", argCount, argCount+1))
+		args = append(args, limit, offset)
+	} else {
+		q.WriteString(fmt.Sprintf(" OFFSET $%d", argCount))
+		args = append(args, offset)
+	}
 
 	query := q.String()
 

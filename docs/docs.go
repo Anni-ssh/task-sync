@@ -91,7 +91,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a new person",
+                "description": "Create a new people",
                 "consumes": [
                     "application/json"
                 ],
@@ -104,8 +104,8 @@ const docTemplate = `{
                 "summary": "Create People",
                 "parameters": [
                     {
-                        "description": "Person to create",
-                        "name": "person",
+                        "description": "People to create",
+                        "name": "people",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -150,13 +150,46 @@ const docTemplate = `{
                 "summary": "Get People by Filter",
                 "parameters": [
                     {
-                        "description": "Filter",
-                        "name": "filter",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/entities.People"
-                        }
+                        "type": "integer",
+                        "description": "Person ID",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Passport Series",
+                        "name": "passport_series",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Passport Number",
+                        "name": "passport_number",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Surname",
+                        "name": "surname",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Patronymic",
+                        "name": "patronymic",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Address",
+                        "name": "address",
+                        "in": "query"
                     },
                     {
                         "type": "integer",
@@ -187,6 +220,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -198,7 +237,7 @@ const docTemplate = `{
         },
         "/people/{peopleID}": {
             "get": {
-                "description": "Get details of a person by ID",
+                "description": "Get details of a people by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -208,7 +247,7 @@ const docTemplate = `{
                 "tags": [
                     "People"
                 ],
-                "summary": "Get Person by ID",
+                "summary": "Get People by ID",
                 "parameters": [
                     {
                         "type": "integer",

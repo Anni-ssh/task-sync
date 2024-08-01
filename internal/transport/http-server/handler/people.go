@@ -4,6 +4,7 @@ import (
 	"TaskSync/internal/entities"
 	"TaskSync/pkg/logger"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -14,11 +15,11 @@ import (
 // Handler methods for People
 
 // @Summary Create People
-// @Description Create a new person
+// @Description Create a new people
 // @Tags People
 // @Accept json
 // @Produce json
-// @Param person body entities.People true "Person to create"
+// @Param people body entities.People true "People to create"
 // @Success 201 {integer} int
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -37,7 +38,7 @@ func (h *Handler) peopleCreate(w http.ResponseWriter, r *http.Request) {
 	id, err := h.services.People.Create(r.Context(), people)
 	if err != nil {
 		log.Error("Failed to create person", logger.Err(err))
-		writeErrorResponse(w, http.StatusInternalServerError, "Failed to create person")
+		writeErrorResponse(w, http.StatusUnprocessableEntity, "Failed to create person")
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -72,8 +73,8 @@ func (h *Handler) peopleList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// @Summary Get Person by ID
-// @Description Get details of a person by ID
+// @Summary Get People by ID
+// @Description Get details of a people by ID
 // @Tags People
 // @Accept json
 // @Produce json
@@ -97,7 +98,7 @@ func (h *Handler) peopleGetByID(w http.ResponseWriter, r *http.Request) {
 	people, err := h.services.People.GetByID(r.Context(), id)
 	if err != nil {
 		log.Error("Failed to fetch person by ID", logger.Err(err))
-		writeErrorResponse(w, http.StatusInternalServerError, "Failed to fetch person by ID")
+		writeErrorResponse(w, http.StatusUnprocessableEntity, "Failed to fetch person by ID")
 		return
 	}
 
@@ -112,33 +113,40 @@ func (h *Handler) peopleGetByID(w http.ResponseWriter, r *http.Request) {
 // @Tags People
 // @Accept json
 // @Produce json
-// @Param filter body entities.People true "Filter"
+// @Param id query int false "Person ID"
+// @Param passport_series query int false "Passport Series"
+// @Param passport_number query int false "Passport Number"
+// @Param surname query string false "Surname"
+// @Param name query string false "Name"
+// @Param patronymic query string false "Patronymic"
+// @Param address query string false "Address"
 // @Param limit query int false "Limit"
 // @Param offset query int false "Offset"
 // @Success 200 {array} entities.People
 // @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /people/filter [get]
 func (h *Handler) peopleGetByFilter(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.peopleGetByFilter"
 	log := h.Logs.With(slog.String("operation", op))
 
-	var filter entities.People
-	if err := json.NewDecoder(r.Body).Decode(&filter); err != nil {
-		log.Error("Failed to decode request body", logger.Err(err))
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid request payload")
-		return
+	filter := entities.People{
+		ID:             parseQueryInt(r.URL.Query().Get("id")),
+		PassportSeries: parseQueryInt(r.URL.Query().Get("passport_series")),
+		PassportNumber: parseQueryInt(r.URL.Query().Get("passport_number")),
+		Surname:        r.URL.Query().Get("surname"),
+		Name:           r.URL.Query().Get("name"),
+		Patronymic:     r.URL.Query().Get("patronymic"),
+		Address:        r.URL.Query().Get("address"),
 	}
 
-	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
-	if err != nil {
-		limit = 0 // or handle default value as needed
-	}
+	limit := parseQueryInt(r.URL.Query().Get("limit"))
+	offset := parseQueryInt(r.URL.Query().Get("offset"))
 
-	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
-	if err != nil {
-		offset = 0 // or handle default value as needed
-	}
+	fmt.Println(filter)
+	fmt.Println(limit)
+	fmt.Println(offset)
 
 	people, err := h.services.People.GetByFilter(r.Context(), filter, limit, offset)
 	if err != nil {

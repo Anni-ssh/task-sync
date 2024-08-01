@@ -94,11 +94,11 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new person
+      description: Create a new people
       parameters:
-      - description: Person to create
+      - description: People to create
         in: body
-        name: person
+        name: people
         required: true
         schema:
           $ref: '#/definitions/entities.People'
@@ -181,7 +181,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get details of a person by ID
+      description: Get details of a people by ID
       parameters:
       - description: People ID
         in: path
@@ -203,7 +203,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
-      summary: Get Person by ID
+      summary: Get People by ID
       tags:
       - People
   /people/filter:
@@ -212,12 +212,34 @@ paths:
       - application/json
       description: Get people based on filters
       parameters:
-      - description: Filter
-        in: body
-        name: filter
-        required: true
-        schema:
-          $ref: '#/definitions/entities.People'
+      - description: Person ID
+        in: query
+        name: id
+        type: integer
+      - description: Passport Series
+        in: query
+        name: passport_series
+        type: integer
+      - description: Passport Number
+        in: query
+        name: passport_number
+        type: integer
+      - description: Surname
+        in: query
+        name: surname
+        type: string
+      - description: Name
+        in: query
+        name: name
+        type: string
+      - description: Patronymic
+        in: query
+        name: patronymic
+        type: string
+      - description: Address
+        in: query
+        name: address
+        type: string
       - description: Limit
         in: query
         name: limit
@@ -237,6 +259,10 @@ paths:
             type: array
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Not Found
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
         "500":
