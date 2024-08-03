@@ -68,7 +68,7 @@ func (h *Handler) InitRouter() *chi.Mux {
 	r.Route("/time", func(r chi.Router) {
 		r.Post("/start", h.timeStartTimeEntry)
 		r.Post("/end", h.timeEndTimeEntry)
-		r.Get("/spent", h.timeGetTaskTimeSpent)
+		r.Post("/spent", h.TasksTimeSpent)
 	})
 
 	return r

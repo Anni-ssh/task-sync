@@ -19,45 +19,50 @@ func NewPeopleManage(db *sql.DB) *PeopleManagePostgres {
 }
 
 func (p *PeopleManagePostgres) Create(ctx context.Context, people entities.People) (int, error) {
-
 	const op = "postgres.People.Create"
 
-	q := `INSERT INTO people_info (passport_series, passport_number, surname, name, patronymic, address) 
-      VALUES($1, $2, $3, $4, $5, $6) 
-      RETURNING id;`
+	stmt, err := p.db.PrepareContext(ctx, `INSERT INTO people_info (passport_series, passport_number, surname, name, patronymic, address) 
+	VALUES ($1, $2, $3, $4, $5, $6) 
+	RETURNING id;`)
+	if err != nil {
+		return 0, fmt.Errorf("%s Prepare: %w", op, err)
+	}
 
 	var id int
 
-	err := p.db.QueryRowContext(ctx, q, people.PassportSeries, people.PassportNumber, people.Surname, people.Name, people.Patronymic, people.Address).Scan(&id)
+	row := stmt.QueryRowContext(ctx, people.PassportSeries, people.PassportNumber, people.Surname, people.Name, people.Patronymic, people.Address)
 
-	if err, ok := err.(*pq.Error); ok {
-		if err.Code == "22023" { // "invalid_parameter_value"
-			return 0, fmt.Errorf("%w, operation: %s", ErrInputData, op)
-		} else {
-			return 0, fmt.Errorf("database error: %w, operation: %s", err, op)
+	err = row.Scan(&id)
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code == "22023" { // "invalid_parameter_value"
+				return 0, fmt.Errorf("%w, operation: %s", ErrInputData, op)
+			}
+			return 0, fmt.Errorf("database error: %w, operation: %s", pqErr, op)
 		}
+		return 0, fmt.Errorf("scan error: %w, operation: %s", err, op)
 	}
 
 	return id, nil
-
 }
 
 func (p *PeopleManagePostgres) GetByID(ctx context.Context, peopleID int) (entities.People, error) {
 	const op = "postgres.People.Get"
 
-	q := `SELECT id, passport_series, passport_number, surname, name, patronymic, address FROM people_info WHERE id = $1;`
+	stmt, err := p.db.PrepareContext(ctx, `SELECT id, passport_series, passport_number, surname, name, patronymic, address FROM people_info WHERE id = $1;`)
+	if err != nil {
+		return entities.People{}, fmt.Errorf("prepare error: %w, operation: %s", err, op)
+	}
 
 	var people entities.People
 
-	row := p.db.QueryRowContext(ctx, q, peopleID)
+	row := stmt.QueryRowContext(ctx, peopleID)
 
-	err := row.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address)
+	err = row.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address)
 	if err != nil {
 		if err == sql.ErrNoRows {
-
 			return people, fmt.Errorf("no records found, operation: %s", op)
 		}
-
 		return people, fmt.Errorf("scan error: %w, operation: %s", err, op)
 	}
 
@@ -130,29 +135,28 @@ func (p *PeopleManagePostgres) GetByFilter(ctx context.Context, filterPeople ent
 
 	query := q.String()
 
-	var peopleList []entities.People
-
-	rows, err := p.db.QueryContext(ctx, query, args...)
+	stmt, err := p.db.PrepareContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("database error: %w, operation: %s", err, op)
+		return nil, fmt.Errorf("prepare error: %w, operation: %s", err, op)
 	}
+
+	rows, err := stmt.QueryContext(ctx, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query error: %w, operation: %s", err, op)
+	}
+
+	var peopleList []entities.People
 
 	for rows.Next() {
 		var people entities.People
-		err := rows.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address)
-		if err != nil {
+		if err := rows.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address); err != nil {
 			return nil, fmt.Errorf("scan error: %w, operation: %s", err, op)
 		}
-
 		peopleList = append(peopleList, people)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows error: %w, operation: %s", err, op)
-	}
-
-	if len(peopleList) == 0 {
-		return nil, fmt.Errorf("%w: %s", ErrNoRecordsFound, op)
 	}
 
 	return peopleList, nil
@@ -161,10 +165,13 @@ func (p *PeopleManagePostgres) GetByFilter(ctx context.Context, filterPeople ent
 func (p *PeopleManagePostgres) Update(ctx context.Context, people entities.People) error {
 	const op = "postgres.People.Update"
 
-	// Проверяем, что все значения в структуре не пустые
+	// Проверяем, что ID предоставлен и хотя бы одно значение для обновления задано
+	if people.ID == 0 {
+		return fmt.Errorf("missing ID, operation: %s", op)
+	}
 	if people.PassportSeries == 0 && people.PassportNumber == 0 && people.Surname == "" &&
-		people.Name == "" && people.Patronymic == "" && people.Address == "" && people.ID == 0 {
-		return fmt.Errorf("incorrect values or their absence, operation: %s", op)
+		people.Name == "" && people.Patronymic == "" && people.Address == "" {
+		return fmt.Errorf("no values to update, operation: %s", op)
 	}
 
 	// Конструктор строки для запроса
@@ -206,21 +213,33 @@ func (p *PeopleManagePostgres) Update(ctx context.Context, people entities.Peopl
 		argCount++
 	}
 
-	// Доабавление ID обновляемой записи
-	q.WriteString(fmt.Sprintf(" WHERE id = $%d", argCount))
+	// Удаляем последнюю запятую
+	query := q.String()
+	if len(query) > len("UPDATE people_info SET") {
+		query = query[:len(query)-1] // Удаление последней запятой
+	}
+
+	// Добавление ID обновляемой записи
+	query += fmt.Sprintf(" WHERE id = $%d", argCount)
 	args = append(args, people.ID)
 
-	result, err := p.db.ExecContext(ctx, q.String(), args...)
+	stmt, err := p.db.PrepareContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("prepare error: %w, operation: %s", err, op)
+	}
+
+	result, err := stmt.ExecContext(ctx, args...)
 	if err != nil {
 		return fmt.Errorf("database error: %w, operation: %s", err, op)
 	}
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("error retrieving affected rows: %w, operation: %s", err, op)
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("no rows affected, operation: %s", op)
+		return fmt.Errorf("no rows updated, operation: %s", op)
 	}
 
 	return nil
@@ -231,20 +250,23 @@ func (p *PeopleManagePostgres) List(ctx context.Context) ([]entities.People, err
 
 	q := `SELECT id, passport_series, passport_number, surname, name, patronymic, address FROM people_info;`
 
-	var peopleList []entities.People
-
-	rows, err := p.db.QueryContext(ctx, q)
+	stmt, err := p.db.PrepareContext(ctx, q)
 	if err != nil {
-		return nil, fmt.Errorf("database error: %w, operation: %s", err, op)
+		return nil, fmt.Errorf("prepare error: %w, operation: %s", err, op)
 	}
+
+	rows, err := stmt.QueryContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("query error: %w, operation: %s", err, op)
+	}
+
+	var peopleList []entities.People
 
 	for rows.Next() {
 		var people entities.People
-		err := rows.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address)
-		if err != nil {
+		if err := rows.Scan(&people.ID, &people.PassportSeries, &people.PassportNumber, &people.Surname, &people.Name, &people.Patronymic, &people.Address); err != nil {
 			return nil, fmt.Errorf("scan error: %w, operation: %s", err, op)
 		}
-
 		peopleList = append(peopleList, people)
 	}
 
@@ -263,7 +285,12 @@ func (p *PeopleManagePostgres) Delete(ctx context.Context, peopleID int) error {
 	// Foreign key для time_entries с опцией ON DELETE SET NULL.
 	q := `DELETE FROM people_info WHERE id = $1;`
 
-	result, err := p.db.ExecContext(ctx, q, peopleID)
+	stmt, err := p.db.PrepareContext(ctx, q)
+	if err != nil {
+		return fmt.Errorf("prepare error: %w, operation: %s", err, op)
+	}
+
+	result, err := stmt.ExecContext(ctx, peopleID)
 	if err != nil {
 		return fmt.Errorf("database error: %w, operation: %s", err, op)
 	}

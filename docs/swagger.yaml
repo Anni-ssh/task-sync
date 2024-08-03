@@ -70,6 +70,15 @@ definitions:
       taskID:
         type: integer
     type: object
+  handler.peopleTimeRange:
+    properties:
+      end_time:
+        type: string
+      people_id:
+        type: integer
+      start_time:
+        type: string
+    type: object
   handler.taskUpdate:
     properties:
       description:
@@ -489,27 +498,18 @@ paths:
       tags:
       - Time
   /time/spent:
-    get:
+    post:
       consumes:
       - application/json
       description: Get time spent on tasks by a person within a specific time range.
         FORMAT TIME - RFC 3339 "2024-08-01T08:00:00Z".
       parameters:
-      - description: People ID
-        in: query
-        name: people_id
+      - description: People id and time range
+        in: body
+        name: task
         required: true
-        type: integer
-      - description: Start time in RFC3339 format
-        in: query
-        name: start_time
-        required: true
-        type: string
-      - description: End time in RFC3339 format
-        in: query
-        name: end_time
-        required: true
-        type: string
+        schema:
+          $ref: '#/definitions/handler.peopleTimeRange'
       produces:
       - application/json
       responses:
@@ -523,7 +523,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
-      summary: Get Task Time Spent
+      summary: Task Time Spent
       tags:
       - Time
   /time/start:

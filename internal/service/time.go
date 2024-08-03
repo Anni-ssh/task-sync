@@ -28,6 +28,6 @@ func (t *TimeService) EndTimeEntry(ctx context.Context, taskID int, endTime time
 }
 
 // GetTaskTimeSpent возвращает трудозатраты по пользователю за заданный период.
-func (t *TimeService) GetTaskTimeSpent(ctx context.Context, peopleID int, startTime, endTime time.Time) ([]entities.TaskTimeSpent, error) {
-	return t.storage.GetTaskTimeSpent(ctx, peopleID, startTime, endTime)
+func (t *TimeService) TasksTimeSpent(ctx context.Context, peopleID int, startTime, endTime time.Time) ([]entities.TaskTimeSpent, error) {
+	return t.storage.TasksTimeSpent(ctx, peopleID, startTime, endTime)
 }

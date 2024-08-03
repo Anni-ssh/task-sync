@@ -614,7 +614,7 @@ const docTemplate = `{
             }
         },
         "/time/spent": {
-            "get": {
+            "post": {
                 "description": "Get time spent on tasks by a person within a specific time range. FORMAT TIME - RFC 3339 \"2024-08-01T08:00:00Z\".",
                 "consumes": [
                     "application/json"
@@ -625,28 +625,16 @@ const docTemplate = `{
                 "tags": [
                     "Time"
                 ],
-                "summary": "Get Task Time Spent",
+                "summary": "Task Time Spent",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "People ID",
-                        "name": "people_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Start time in RFC3339 format",
-                        "name": "start_time",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "End time in RFC3339 format",
-                        "name": "end_time",
-                        "in": "query",
-                        "required": true
+                        "description": "People id and time range",
+                        "name": "task",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.peopleTimeRange"
+                        }
                     }
                 ],
                 "responses": {
@@ -821,6 +809,20 @@ const docTemplate = `{
                 },
                 "taskID": {
                     "type": "integer"
+                }
+            }
+        },
+        "handler.peopleTimeRange": {
+            "type": "object",
+            "properties": {
+                "end_time": {
+                    "type": "string"
+                },
+                "people_id": {
+                    "type": "integer"
+                },
+                "start_time": {
+                    "type": "string"
                 }
             }
         },

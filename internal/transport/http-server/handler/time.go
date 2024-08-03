@@ -5,10 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
-
-	"github.com/go-chi/chi/v5"
 )
 
 // Handler methods for Time
@@ -86,42 +83,34 @@ func (h *Handler) timeEndTimeEntry(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// @Summary Get Task Time Spent
+type peopleTimeRange struct {
+	PeopleID  int       `json:"people_id"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+}
+
+// @Summary Task Time Spent
 // @Description Get time spent on tasks by a person within a specific time range. FORMAT TIME - RFC 3339 "2024-08-01T08:00:00Z".
 // @Tags Time
 // @Accept json
 // @Produce json
-// @Param people_id query int true "People ID"
-// @Param start_time query string true "Start time in RFC3339 format"
-// @Param end_time query string true "End time in RFC3339 format"
+// @Param task body peopleTimeRange true "People id and time range"
 // @Success 200 {array} entities.TaskTimeSpent
 // @Failure 500 {object} ErrorResponse
-// @Router /time/spent [get]
-func (h *Handler) timeGetTaskTimeSpent(w http.ResponseWriter, r *http.Request) {
+// @Router /time/spent [post]
+func (h *Handler) TasksTimeSpent(w http.ResponseWriter, r *http.Request) {
 	const op = "handler.timeGetTaskTimeSpent"
 	log := h.Logs.With(slog.String("operation", op))
 
-	peopleID, err := strconv.Atoi(chi.URLParam(r, "people_id"))
-	if err != nil {
-		log.Error("Invalid people ID", logger.Err(err))
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid people ID")
+	var inputValues peopleTimeRange
+
+	if err := json.NewDecoder(r.Body).Decode(&inputValues); err != nil {
+		log.Error("Failed to decode request body", logger.Err(err))
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
-	startTime, err := time.Parse(time.RFC3339, chi.URLParam(r, "start_time"))
-	if err != nil {
-		log.Error("Invalid start time", logger.Err(err))
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid start time")
-		return
-	}
-
-	endTime, err := time.Parse(time.RFC3339, chi.URLParam(r, "end_time"))
-	if err != nil {
-		log.Error("Invalid end time", logger.Err(err))
-		writeErrorResponse(w, http.StatusBadRequest, "Invalid end time")
-		return
-	}
-	timeSpent, err := h.services.Time.GetTaskTimeSpent(r.Context(), peopleID, startTime, endTime)
+	timeSpent, err := h.services.Time.TasksTimeSpent(r.Context(), inputValues.PeopleID, inputValues.StartTime, inputValues.EndTime)
 	if err != nil {
 		log.Error("Failed to get task time spent", logger.Err(err))
 		writeErrorResponse(w, http.StatusInternalServerError, "Failed to get task time spent")

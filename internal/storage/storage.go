@@ -34,7 +34,7 @@ type TaskManage interface {
 type TimeManage interface {
 	StartTimeEntry(ctx context.Context, taskID int, timeEntries time.Time) error
 	EndTimeEntry(ctx context.Context, taskID int, endTime time.Time) error
-	GetTaskTimeSpent(ctx context.Context, peopleID int, startTime, endTime time.Time) ([]entities.TaskTimeSpent, error)
+	TasksTimeSpent(ctx context.Context, peopleID int, startTime, endTime time.Time) ([]entities.TaskTimeSpent, error)
 }
 
 type Storage struct {
